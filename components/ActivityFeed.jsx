@@ -42,11 +42,16 @@ import {
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import api from "../server/apiFetch";
 import { useRouter } from "next/navigation";
+import socket from "@/utils/socket";
+import { print } from "../utils";
 
 export function ActivityFeed() {
   const router = useRouter();
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [isConnected, setIsConnected] = useState(true);
   const [summaries, setSummaries] = useState([]);
+  const [total, setTotal] = useState(0);
   const [user, setUser] = useState(null);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("newest");
@@ -63,7 +68,7 @@ export function ActivityFeed() {
   const formatTimeAgo = (date) => {
     const now = new Date();
     const diffInMinutes = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60)
+      (now.getTime() - new Date(date).getTime()) / (1000 * 60)
     );
 
     if (diffInMinutes < 1) return "Just now";
@@ -92,13 +97,34 @@ export function ActivityFeed() {
   const purchaseHistory = () => {
     router.push("/purchase-history");
   };
+  const fetchSummary = async () => {
+    try {
+      const { items, total } = await api.get("/user/summary", { page, limit });
+      setSummaries((prev) => [...prev, ...items]);
+      setTotal(total);
+      setPage((prev) => prev + 1);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  const getCompression = (summary) => {
+    const inputLength = summary?.input?.length || 0;
+    const outputLength = summary?.output?.length || 0;
+    return (((inputLength - outputLength) / inputLength) * 100).toFixed(2);
+  };
 
   useEffect(() => {
     setAuthUser();
+    fetchSummary();
+    socket.on("summary", (val) => {
+      setSummaries((prev) => [val, ...prev]);
+    });
     const update = () => setIsConnected(navigator.onLine);
     window.addEventListener("online", update);
     window.addEventListener("offline", update);
+
     return () => {
+      socket.off("summary");
       window.removeEventListener("online", update);
       window.removeEventListener("offline", update);
     };
@@ -167,7 +193,7 @@ export function ActivityFeed() {
       </div>
 
       <div className="text-xs text-muted-foreground">
-        Last updated: {formatTimeAgo(new Date())}
+        Last updated: {formatTimeAgo(summaries[0]?.createdAt || new Date())}
       </div>
 
       <div className="flex flex-row gap-2 md:gap-4">
@@ -193,7 +219,10 @@ export function ActivityFeed() {
       </div>
 
       <div className="flex items-center justify-between text-sm text-muted-foreground h-8">
-        <span>10 of 100 summaries</span>
+        <span>
+          {summaries.length} of{" "}
+          {total < summaries.length ? summaries.length : total} summaries
+        </span>
         {search && (
           <Button variant="ghost" size="sm" onClick={() => setSearch("")}>
             Clear search
@@ -223,30 +252,27 @@ export function ActivityFeed() {
             </CardContent>
           </Card>
         ) : (
-          summaries.map((summary, index) => (
-            <Card
-              key={summary.id}
-              className={`transition-all hover:shadow-lg ${
-                index === 0 && summary.timestamp.getTime() > Date.now() - 5000
-                  ? "ring-2 ring-primary/20"
-                  : ""
-              }`}
-            >
+          summaries.map((summary, i) => (
+            <Card key={i} className="transition-all hover:shadow-lg">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium text-sm">{summary.user}</span>
-                    {summary.compressionRatio && (
-                      <Badge
-                        variant="outline"
-                        className="text-xs flex items-center gap-1"
-                      >
-                        <TrendingDown className="h-3 w-3" />
-                        {summary.compressionRatio}% compressed
-                      </Badge>
-                    )}
-                    {summary.timestamp.getTime() > Date.now() - 30000 && (
+                    <Avatar>
+                      <AvatarImage src={summary.user.avatar} />
+                      <AvatarFallback>{summary.user.name[0]}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium text-sm">
+                      {summary.user.name}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-xs flex items-center gap-1"
+                    >
+                      <TrendingDown className="h-3 w-3" />
+                      {getCompression(summary)}% compressed
+                    </Badge>
+                    {new Date(summary.createdAt).getTime() >
+                      Date.now() - 30000 && (
                       <Badge variant="secondary" className="text-xs">
                         New
                       </Badge>
@@ -254,7 +280,7 @@ export function ActivityFeed() {
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    {formatTimeAgo(summary.timestamp)}
+                    {formatTimeAgo(summary.createdAt)}
                   </div>
                 </div>
 
@@ -263,17 +289,16 @@ export function ActivityFeed() {
                     <p className="text-sm font-medium text-primary mb-1">
                       Summary:
                     </p>
-                    <p className="text-sm">{summary.summary}</p>
+                    <p className="text-sm">{summary.output}</p>
                   </div>
 
                   <details className="group">
                     <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors">
-                      View original text ({summary.originalText.length}{" "}
-                      characters)
+                      View original text ({summary.input.length} characters)
                     </summary>
                     <div className="mt-2 p-3 bg-secondary/50 rounded-lg">
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        {summary.originalText}
+                        {summary.input}
                       </p>
                     </div>
                   </details>
@@ -325,10 +350,10 @@ export function ActivityFeed() {
                   </p>
 
                   <ul className="mt-8 space-y-4">
-                    {features.map((feature, index) => (
+                    {features.map((feature, i) => (
                       <li
                         className="flex items-center text-[15px] text-slate-600 font-medium"
-                        key={index}
+                        key={i}
                       >
                         <CheckIcon className="text-green-600 mr-1" />
                         {feature}

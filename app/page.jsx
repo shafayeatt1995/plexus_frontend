@@ -15,35 +15,27 @@ import { toast } from "sonner";
 
 import { ActivityFeed } from "@/components/ActivityFeed";
 import Header from "../components/Header";
-
-const initialSummaries = [
-  {
-    id: "1",
-    originalText:
-      "Artificial intelligence has revolutionized the way we approach problem-solving in various industries. From healthcare to finance, AI systems are now capable of processing vast amounts of data and providing insights that were previously impossible to obtain. Machine learning algorithms can identify patterns in complex datasets, enabling predictive analytics and automated decision-making processes.",
-    summary:
-      "AI has transformed problem-solving across industries like healthcare and finance by processing large datasets, identifying patterns, and enabling predictive analytics and automated decisions.",
-    timestamp: new Date(Date.now() - 300000),
-    user: "Alice",
-    compressionRatio: 65,
-  },
-];
+import api from "../server/apiFetch";
+import socket from "../utils/socket";
 
 export default function Home() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState(null);
+  const [summary, setSummary] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       if (!text.trim()) return;
       setLoading(true);
-      setText("");
-
-      // toast("Summary generated!", {
-      //   description: `Compressed by ${data.compressionRatio}% (${data.originalLength} → ${data.summaryLength} chars)`,
-      // });
+      const { item } = await api.post("/user/summary", {
+        text,
+        socketID: socket.id,
+      });
+      setSummary(item);
+      toast("Summary generated!", {
+        variant: "success",
+      });
     } catch (error) {
       console.error("Error generating summary:", error);
       toast("Error", {
@@ -105,6 +97,14 @@ export default function Home() {
                       </Button>
                     </div>
                   </form>
+                  {summary?.output && (
+                    <div className="p-3 bg-muted rounded-lg mt-3">
+                      <p className="text-sm font-medium text-primary mb-1">
+                        Summary:
+                      </p>
+                      <p className="text-sm">{summary.output}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
