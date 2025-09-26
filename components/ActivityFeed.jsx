@@ -83,7 +83,6 @@ export function ActivityFeed() {
     try {
       setPriceLoading(price);
       const data = await api.post("/checkout-session", { price });
-      console.log(data);
       if (data?.url) window.location.href = data.url;
     } catch (error) {
       console.error(error);

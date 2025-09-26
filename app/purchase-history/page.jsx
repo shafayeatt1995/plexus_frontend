@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { CoinsIcon, Undo2Icon } from "lucide-react";
 import Header from "../../components/Header";
 import {

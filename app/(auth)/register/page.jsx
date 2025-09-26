@@ -36,7 +36,6 @@ export default function Register() {
       setError(null);
       const body = { name, email, password, confirmPassword };
       const res = await api.post("/auth/register", body);
-      console.log(res);
       if (res) {
         await signIn("credentials", {
           email,
