@@ -14,7 +14,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActivityFeed } from "@/components/ActivityFeed";
-import Image from "next/image";
+import Header from "../components/Header";
 
 const initialSummaries = [
   {
@@ -57,19 +57,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background grid-pattern">
+      <Header />
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="text-center mb-12">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-2 mb-4">
-            <Image src="/images/logo.png" alt="Logo" width={60} height={60} />
-            <h1 className="text-4xl font-bold text-balance">AI Summary Feed</h1>
-          </div>
-          <p className="text-lg text-muted-foreground text-balance max-w-2xl mx-auto">
-            Transform your text into concise summaries powered by advanced AI.
-            Share insights and discover what others are summarizing in
-            real-time.
-          </p>
-        </div>
-
         <div className="grid lg:grid-cols-2 gap-8">
           <div>
             <div className="space-y-6 sticky top-3">

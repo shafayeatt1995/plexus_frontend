@@ -35,18 +35,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import api from "../server/apiFetch";
+import { useRouter } from "next/navigation";
 
-export function ActivityFeed({ onRefresh, lastUpdate }) {
+export function ActivityFeed() {
+  const router = useRouter();
   const [isConnected, setIsConnected] = useState(true);
   const [summaries, setSummaries] = useState([]);
   const [user, setUser] = useState(null);
@@ -141,8 +139,13 @@ export function ActivityFeed({ onRefresh, lastUpdate }) {
                 </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs font-normal pt-0">
+                  {user.token} token left
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setModal(true)}>
-                  <CoinsIcon /> Purchase Plan
+                  <CoinsIcon /> Purchase Token
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => purchaseHistory()}>
                   <ReceiptTextIcon /> Purchase History
@@ -164,11 +167,9 @@ export function ActivityFeed({ onRefresh, lastUpdate }) {
         </div>
       </div>
 
-      {lastUpdate && (
-        <div className="text-xs text-muted-foreground">
-          Last updated: {formatTimeAgo(lastUpdate)}
-        </div>
-      )}
+      <div className="text-xs text-muted-foreground">
+        Last updated: {formatTimeAgo(new Date())}
+      </div>
 
       <div className="flex flex-row gap-2 md:gap-4">
         <div className="relative flex-1">
@@ -311,7 +312,7 @@ export function ActivityFeed({ onRefresh, lastUpdate }) {
                   <h3 className="text-slate-900 text-3xl font-semibold">
                     $10{" "}
                     <sub className="text-slate-600 text-[15px] font-normal">
-                      / per month
+                      / 10 tokens
                     </sub>
                   </h3>
                 </div>
@@ -366,7 +367,7 @@ export function ActivityFeed({ onRefresh, lastUpdate }) {
                   <h3 className="text-slate-900 text-3xl font-semibold">
                     $20{" "}
                     <sub className="text-slate-600 text-[15px] font-normal">
-                      / per month
+                      / 20 tokens
                     </sub>
                   </h3>
                 </div>
@@ -418,7 +419,7 @@ export function ActivityFeed({ onRefresh, lastUpdate }) {
                   <h3 className="text-slate-900 text-3xl font-semibold">
                     $100{" "}
                     <sub className="text-slate-600 text-[15px] font-normal">
-                      / per month
+                      / 100 tokens
                     </sub>
                   </h3>
                 </div>
