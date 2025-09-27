@@ -28,7 +28,7 @@ export default function Home() {
     try {
       if (!text.trim()) return;
       setLoading(true);
-      const { item } = await api.post("/user/summary", {
+      const { item } = await api.post("/summary", {
         text,
         socketID: socket.id,
       });

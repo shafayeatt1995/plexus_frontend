@@ -1,23 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Clock,
-  User,
   TrendingDown,
-  Search,
-  RefreshCw,
   Wifi,
   WifiOff,
   LogOutIcon,
@@ -43,18 +32,17 @@ import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import api from "../server/apiFetch";
 import { useRouter } from "next/navigation";
 import socket from "@/utils/socket";
-import { print } from "../utils";
 
 export function ActivityFeed() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [init, setInit] = useState(false);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [isConnected, setIsConnected] = useState(true);
   const [summaries, setSummaries] = useState([]);
   const [total, setTotal] = useState(0);
   const [user, setUser] = useState(null);
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
   const [modal, setModal] = useState(false);
   const [features, setFeatures] = useState([
     "Feature 1",
@@ -99,12 +87,20 @@ export function ActivityFeed() {
   };
   const fetchSummary = async () => {
     try {
-      const { items, total } = await api.get("/user/summary", { page, limit });
+      if (loading) return;
+      setLoading(true);
+      const { items, total } = await api.get("/summary", {
+        page,
+        limit,
+      });
       setSummaries((prev) => [...prev, ...items]);
       setTotal(total);
       setPage((prev) => prev + 1);
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
+      setInit(true);
     }
   };
   const getCompression = (summary) => {
@@ -131,7 +127,7 @@ export function ActivityFeed() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Live Activity Feed</h2>
         <div className="flex items-center gap-2">
@@ -152,9 +148,6 @@ export function ActivityFeed() {
               </>
             )}
           </Badge>
-          <Button variant="outline" size="sm" disabled={!isConnected}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger>
@@ -192,63 +185,18 @@ export function ActivityFeed() {
         </div>
       </div>
 
-      <div className="text-xs text-muted-foreground">
-        Last updated: {formatTimeAgo(summaries[0]?.createdAt || new Date())}
-      </div>
-
-      <div className="flex flex-row gap-2 md:gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search summaries..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={sortBy} onValueChange={(value) => setSortBy(value)}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Newest first</SelectItem>
-            <SelectItem value="oldest">Oldest first</SelectItem>
-            <SelectItem value="compression">Best compression</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       <div className="flex items-center justify-between text-sm text-muted-foreground h-8">
         <span>
           {summaries.length} of{" "}
           {total < summaries.length ? summaries.length : total} summaries
         </span>
-        {search && (
-          <Button variant="ghost" size="sm" onClick={() => setSearch("")}>
-            Clear search
-          </Button>
-        )}
       </div>
 
       <div className="space-y-4">
         {summaries.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <div className="text-muted-foreground">
-                {search
-                  ? "No summaries match your filters"
-                  : "No summaries yet"}
-              </div>
-              {search && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 bg-transparent"
-                  onClick={() => setSearch("")}
-                >
-                  Clear filters
-                </Button>
-              )}
+              <div className="text-muted-foreground">No summaries yet</div>
             </CardContent>
           </Card>
         ) : (
@@ -307,6 +255,13 @@ export function ActivityFeed() {
             </Card>
           ))
         )}
+        <div className="flex justify-center">
+          {init && summaries.length === 0 && summaries.length < total && (
+            <Button variant="outline" onClick={fetchSummary} disabled={loading}>
+              {loading && <Loader2Icon className="animate-spin" />} Load More
+            </Button>
+          )}
+        </div>
       </div>
 
       <Dialog open={modal} onOpenChange={setModal}>
