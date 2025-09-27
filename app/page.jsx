@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -17,11 +17,13 @@ import { ActivityFeed } from "@/components/ActivityFeed";
 import Header from "../components/Header";
 import api from "../server/apiFetch";
 import socket from "../utils/socket";
+import { authUser, refreshToken } from "../services/nextAuth";
 
 export default function Home() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
+  const [authUserData, setAuthUserData] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,8 +46,21 @@ export default function Home() {
       });
     } finally {
       setLoading(false);
+      await refreshToken();
     }
   };
+  const setUser = async () => {
+    try {
+      const user = await authUser();
+      setAuthUserData(user);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    setUser();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background grid-pattern">
@@ -80,7 +95,12 @@ export default function Home() {
                       </span>
                       <Button
                         type="submit"
-                        disabled={!text.trim() || loading || text.length < 1}
+                        disabled={
+                          !authUserData ||
+                          authUserData?.tokens <= 0 ||
+                          !text.trim() ||
+                          loading
+                        }
                         variant="green"
                       >
                         {loading ? (
