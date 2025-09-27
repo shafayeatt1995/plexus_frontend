@@ -47,6 +47,7 @@ export default function Home() {
     } finally {
       setLoading(false);
       await refreshToken();
+      await setUser();
     }
   };
   const setUser = async () => {
