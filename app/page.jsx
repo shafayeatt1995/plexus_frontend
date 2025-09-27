@@ -18,6 +18,7 @@ import Header from "../components/Header";
 import api from "../server/apiFetch";
 import socket from "../utils/socket";
 import { authUser, refreshToken } from "../services/nextAuth";
+import { print } from "../utils";
 
 export default function Home() {
   const [text, setText] = useState("");
@@ -98,7 +99,7 @@ export default function Home() {
                         type="submit"
                         disabled={
                           !authUserData ||
-                          authUserData?.tokens <= 0 ||
+                          authUserData?.token <= 0 ||
                           !text.trim() ||
                           loading
                         }
